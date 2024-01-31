@@ -68,8 +68,3 @@ pub fn exec(buf: Vec<u8>, width: u32, height: u32) -> Vec<u8> {
     let mut img: ImageBuffer<Rgba<u8>, Vec<_>> = ImageBuffer::from_raw(width, height, buf).unwrap();
     mosaic(img, width, height)
 }
-/* 
-#[wasm_bindgen]
-pub fn add(a: i32, b: i32) -> i32 {
-    a + b
-} */
