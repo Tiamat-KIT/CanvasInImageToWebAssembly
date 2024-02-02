@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import './App.css'
-import { useCallback } from 'react';
 
 function App() {
  
@@ -21,13 +20,40 @@ function App() {
             <label htmlFor="file">Input Image file</label>
             <input type="file" id="wasm-input-img"  title='input img data'
               onChange={(event) => {
+                const start = performance.now()
                 const file = (event.target as HTMLInputElement).files?.item(0)
                 if (file == null) {
                   return
                 }
                 const blob = URL.createObjectURL(file)
                 const img = document.getElementById('wasm-img') as HTMLImageElement
-                img.src = blob
+                /* img.src = blob */
+
+                const canvas = document.createElement("canvas") as HTMLCanvasElement
+                const ctx = canvas.getContext('2d') as CanvasRenderingContext2D;
+                const NewImg = new Image();
+                let ResultData: Uint8Array 
+                NewImg.src = blob;
+                NewImg.onload = function() {
+                  console.log("WASM:Onload " + (performance.now() - start) + "ms");
+                  canvas.width = NewImg.width;
+                  canvas.height = NewImg.height;
+                  ctx.drawImage(NewImg, 0, 0);
+                  const ImgUInt8Array = new Uint8Array(ctx.getImageData(0, 0, canvas.width, canvas.height).data.buffer);
+                  ResultData = invert_colors(ImgUInt8Array, canvas.width, canvas.height);
+                  console.log("WASM:Invert " + (performance.now() - start) + "ms");
+                  const ResultImage = new ImageData(canvas.width, canvas.height)
+                  console.log("UInt8Array:",ResultData,"ImageData:",ResultImage);
+                  if(ResultData == null || ResultData == undefined){
+                    throw new Error("WebAssembly UInt8Array to ImageData Error");
+                  }
+                  ResultImage.data.set(ResultData);
+                  ctx.putImageData(ResultImage,0,0);
+                  img.src = canvas.toDataURL();
+                  console.log("WASM:PutImageData",img.src);
+                  console.log("All-Process-WASM: " + (performance.now() - start) + "ms");
+                  document.getElementById("wasm-container")?.append((document.createElement("p") as HTMLParagraphElement).textContent = `All-Process-WASM:${performance.now() - start}ms`);
+                }
               }}/>
         </div>
         <div className='rounded-xl border-2	drop-shadow-xl p-4'>
@@ -61,12 +87,12 @@ function App() {
                   dst.data[i+1] = 255 - src.data[i+1];  //G
                   dst.data[i+2] = 255 - src.data[i+2];  //B
                   dst.data[i+3] = src.data[i+3];        //A
-              }
+                }
                 console.log("JS:Invert " + (performance.now() - start) + "ms");
                 ctx.putImageData(dst, 0, 0);
                 img.src = canvas.toDataURL();
                 console.log("JS:PutImageData",img.src);
-                // console.log("All-Process-JS: " + (performance.now() - start) + "ms");
+                console.log("All-Process-JS: " + (performance.now() - start) + "ms");
                 document.getElementById("js-container")?.append((document.createElement("p") as HTMLParagraphElement).textContent = `All-Process-JS:${performance.now() - start}ms`);
               }
             }} />
